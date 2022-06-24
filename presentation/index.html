@@ -1,0 +1,407 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>reveal.js</title>
+
+    <link rel="stylesheet" href="dist/reset.css">
+    <link rel="stylesheet" href="dist/reveal.css">
+    <link rel="stylesheet" href="dist/theme/simple.css">
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css">
+</head>
+
+<body>
+    <div class="reveal">
+        <section class="slides">
+            <section>
+                <h1>Typescript: structural vs nominal types</h1>
+            </section>
+            <section>
+                <section>
+                    <blockquote>
+                        TypeScript is a <strong>Structural Type System</strong>. A structural type
+                        system means that when comparing types, TypeScript only
+                        takes into account the members on the type.
+                    </blockquote>
+                    <footer><a href="https://www.typescriptlang.org/play#example/structural-typing">comments from a typescript playground example</a></footer>
+                </section>
+                <section>
+                    <h2>Example</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        type DoiParts = {
+                            publisherId: string,
+                            articleId: string
+                        }
+                        type ArticleId = {
+                            publisherId: string,
+                            articleId: string
+                        }
+
+                        const takesADoiParts = (doiParts: DoiParts) => {
+                            console.log(doiParts.publisherId);
+                        }
+                        const takesAnArticleId = (articleId: ArticleId) => {
+                            console.log(articleId.articleId);
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Example</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        const doi = {
+                            publisherId: "something",
+                            articleId: "somethingelse"
+                        };
+
+                        takesADoiParts(doi); // output: something
+                        takesAnArticleId(doi); // output: somethingelse
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript is awesome!</h2>
+                    <img src="images/awesome.jpeg">
+                </section>
+            </section>
+            <section>
+                <section>A digression</section>
+                <section>
+                    <h2>DDD: Domain-driven design</h2>
+                    <img src="images/domain-driven-design.jpeg" class="r-stretch">
+                </section>
+                <section>
+                    <blockquote>
+                        "The heart of software is its ability to solve domain-related problems for its user."
+                    </blockquote>
+                    <blockquote>
+                        "To communicate effectively, the code must be based on the same language used to write the
+                        requirements—the same language that the developers speak with each other and with domain
+                        experts."
+                    </blockquote>
+                    <footer>― Eric Evans, <cite>Domain-Driven Design: Tackling Complexity in the Heart of
+                            Software</cite></footer>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        class Doi  // Value object
+                        {
+                            public function __construct(public readonly string $doi) {
+                                // validate string
+                            }
+                            public static function fromString(string $doiString) {
+                                return new self($doiString);
+                            }
+                        }
+
+                        class Article // Entity object
+                        {
+                            public function __construct(public readonly Doi $doi) { }
+                            public function publishVor() {
+                                // the heart of your complex logic is here
+                            }
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        class ArticleRepository
+                        {
+                            public function find(Doi $doi)
+                            {
+                                //encapsulate persistence here
+                            }
+                            public function add(Article $article)
+                            {
+                                //encapsulate persistence here
+                            }
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        // persistence agnostic
+                        $article = $articleRepository->find(Doi::fromString("11.111/abcdefg1"));
+
+                        // the heart of your complex logic is here,
+                        // using language familiar to domain experts
+                        $article->publishVor();
+
+                        // persistence agnostic
+                        $articleRepository->add($article);
+                    </code></pre>
+                </section>
+            </section>
+            <section>
+                <h2>PHP Example 1</h2>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        class Doi {
+                            public function __construct(public readonly string $doi) { }
+                            public function __toString() { return $this->doi; }
+                        }
+                        class ArticleXml {
+                            public function __construct(public readonly string $xml) { }
+                            public function __toString() { return $this->xml; }
+                        }
+                        class ArticleHtml {
+                            public function __construct(public readonly string $html) { }
+                            public function __toString() { return $this->html; }
+                        }
+                        class ArticleJson {
+                            public function __construct(public readonly string $json) { }
+                            public function __toString() { return $this->json; }
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        class Article
+                        {
+                            public function __construct(
+                                public readonly Doi $doi,
+                                public readonly ArticleXml $xml,
+                                public readonly ArticleHtml $html,
+                                public readonly ArticleJson $json,
+                            ) { }
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        $doi = '11.111/abcdefg1';
+                        $xml = '<article><article-title>Test article</article-title></article>';
+                        $html = '<article><h1>Test article</h1></article>';
+                        $json = '{"title":"Test article"}';
+
+                        $article = new Article(
+                            new Doi($doi),
+                            new ArticleXml($xml),
+                            new ArticleHtml($html),
+                            new ArticleJson($json),
+                        );
+
+                        var_dump((string)$article->doi); //expect "11.111/abcdefg1"
+
+                    </code></pre>
+                </section>
+            </section>
+            <section>
+                <h2>PHP Example 2</h2>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        class Doi {
+                            public function __construct(public readonly string $doi) {
+                                if (!str_contains($this->doi, "/")) {
+                                    throw new InvalidArgumentException(
+                                        "{$this->doi} does not look like a DOI"
+                                    );
+                                }
+                            }
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        $doi1 = new Doi("11.111/abcdefg1");
+                        $doi2 = new Doi("not a DOI"); // TypeError thrown
+                    </code></pre>
+                </section>
+            </section>
+            <section>
+                <h2>PHP Example 3</h2>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        function getPublisherIdFromDoi(Doi $doi)
+                        {
+                            return explode("/", $doi, 2)[0];
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <pre><code data-trim data-line-numbers="">
+                        var_dump(
+                            getPublisherIdFromDoi($article->doi)
+                        ); //expect "11.111"
+                        var_dump(
+                            getPublisherIdFromDoi($article->xml)
+                        ); //expect TypeError thrown
+                    </code></pre>
+                </section>
+            </section>
+            <section>
+                <p>PHP is a nominal typing system</p>
+                <p>The Domain-driven design patterns are relying on nominal typing to make certain guarantees.</p>
+            </section>
+            <section>
+                <section>
+                    <h2>Typescript Example 1</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        type Doi = string;
+                        type ArticleXML = string;
+                        type ArticleHTML = string;
+                        type ArticleJSON = string;
+
+                        type Article = {
+                            doi: Doi
+                            xml: ArticleXML,
+                            html: ArticleHTML,
+                            json: ArticleJSON,
+                        };
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript Example 1</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        const doi = '11.111/abcdefg1';
+                        const xml = '<article><article-title>Test article</article-title></article>';
+                        const html = '<article><h1>Test article</h1></article>';
+                        const json = '{"title":"Test article"}';
+
+                        const article = {
+                            doi,
+                            xml,
+                            html,
+                            json,
+                        };
+
+                        console.log(article.doi); //expect "11.111/abcdefg1"
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript is awesome!</h2>
+                    <img src="images/awesome.jpeg">
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>Typescript Example 2</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        export const createDoiFromString = (doi: string): Doi => {
+                            if (!doi.includes("/")) {
+                              throw new Error(`${doi} does not look like a DOI`)
+                            }
+                            return doi;
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript Example 2</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        $doi1 = createDoiFromString("11.111/abcdefg1");
+                        $doi2 = createDoiFromString("not a DOI"); // Error thrown
+                    </code></pre>
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>Typescript Example 3</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        const getPublisherIdFromDoi = (doi: Doi) => {
+                            return doi.split('/',1)[0];
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript Example 3</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        console.log(getPublisherIdFromDoi(article.doi)); //expect "11.111"
+                        console.log(getPublisherIdFromDoi(article.xml)); //expect Error
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript Example 3</h2>
+                    <pre>
+> node_modules/.bin/ts-node test_types3.ts
+11.111
+<article><article-title>Test article<
+                    </pre>
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>Typescript is awesome?</h2>
+                    <img src="images/saddog.jpeg">
+                </section>
+                <section>
+                    <blockquote>
+                        TypeScript's type system is structural, which means
+                        if the type is shaped like a duck, it's a duck. If a
+                        goose has all the same attributes as a duck, then it also is a duck.
+                    </blockquote>
+                    <footer><a href="https://www.typescriptlang.org/play?#code/PTAEEFQOwewWwJZQIYBtQBcCeAHApqAM5aEZ5yhx7JSGYAWyGo1AxvZrgQnQK5QIAjrzwBYAFAhQNACYsAbniigEAM0746jRQwKFkVUDKbJQWGL1CsasZskKEEAcygSpyVgCcYDjXkIAdBJuYAAqXADKXgg4GADkdNj4RCRkFDxEGJ68rBi8nmgANKAA7vQI7JTUtCEq6hj0BEncdISM+HKoCADWBKYyOd3FCPF0-YMBoACS6si1TjA+BIxjqOgNegZ9GFkIAEa8ZGNjRoPFG8oj0qiEMLUZ46zdkwCaFlY0oKjUnspwMJ5lnhAQAuFgADwMOG+INI2Vy+TQAFokkgnMFJGFynRrMptAQZAUSnsPN1CMVVACIVDvrpAdJ6dZCP5amVgX1Mp40aAqVBeHA9sCPnjkDpCPhWAg0FYYFAyOC7FA5OZeLUZLK4swSjRmBgYAohXBkL1dKB5GgRIkCrRVMCCntvpMAGIA2p4SFwaF4EEhWpI0CgACqzM80ygOEOoAiuygTjoAAp+PpbQBKP0B0LWwioJgIWVRmNx9NBkPTGRKDBqCq5-MAOX5gs8hGL4FYrH8dFCMF6NXEtQA6gRcaAnHhmP9SDz6o0zRaCKpvBRTLBECh1lxasRSORSiMOKYujtaXsrjB1O6sqZWDBy0E+5jQIO4vSFty9aBeMzpJc5cDmbk8zXPxihKPdpA-ARhDEB9r1oS8kGYJBTUpTwKDPcCcG8fBPGwD41jwOQAH1CL2a05HjBoeHuHFZUUOVAJTUpykqI1ejoK4EE9HxHAdJp9XsRwXGkWpYFQ6U4TffjQAANTQBBjDIGQpnDQ5oy5WM7wkZoZLkhSCOUiMMDU7kAF5OW5AAyUAAG9QGI0jZDBAAiYMhQMyMAAUfGYWSugUwCnNAABfABuDEpEHXc1g-L9TFUfgAPzd9LxtAEl3M2NMDuB9TF8+SmH0lSjMLUB-QOXUZxwGAENKAEGmgGBK1jaiGCYUo8GfAgACtP2YQiyDWNFCNAcJ8CiLlYlaxDRkwbI8E08RYMnc0-IK1zPHc5gzPjJBDLBCTY0YkyAD4bIkAMluYRxPW+PK9KUorQDM3bDgCQFoQ8PB42AAAdAAeYAnGKJzABMiJyUzC8QA0BPJfiITivTugqHsM6Q6CRxTNuM2NIdC8KwFrGASna4UrEBArQHiqBEtoJiKg4UDotlVAsGkNs8FiWoLFDKA8GJlckGlZpilkBqKoIUdeYKdADqcPwFsu0BMIQ2stie0B4xQKgwQxwrDOxpwjtO6zzplWgYEdVAYCcTWtghiQ8fvKQXVDd0aTwYpGkBBIiHgAgk2QW0VEehd4HAz9gWKV9mofBpvF4JwOA2WdVr1UNRYuUBBW5NArZKAisqzghld-GQfXvRWXq20AnLQYEMHjOI9hgPY9lZjBkF4wg4hTJzIcVlb8sxx6zMHvT1s2naivt8QS4wVWqHjMfkc2mfagAeWUZPGq90BGCVYocAEt8Z34JFl8UjK5b1Wo54XghGfQAoeA5a9PQQb5Xc8bxPHLiQ762FPQya8HxvEsMOcmcgrzwEwngRotAEA6BgIoTw8gEB8ynLoNUahbSAjlKUZAJBC5eGoGQBqq4hZcHJN+OQGwECeFqJecsSIzyqHYlvbEoAAAsAAGHhMo4BUHwVbTKABxEYAAJXgewVAOBEOXEAtR6A7BwIQEEIAnB7mkQEN+wAACyFRvC3FUBgYAo08DjRiKYnghBLTAAAEw8Psb6HKSoGAZCqpOB4I5yZXX5EaTwWAFHACUSotRIBEDsDQAALzrk8BAOj4DAAFmuFEuA0RIiQGkzQ0RYghPEEAA">comments from another typescript playground example</a></footer>
+                </section>
+                <section>
+                    <blockquote>
+                        This can have drawbacks, for example there are cases
+                        where a string or number can have special context and you
+                        don't want to ever make the values transferrable.
+                    </blockquote>
+                    <footer><a href="https://www.typescriptlang.org/play?#code/PTAEEFQOwewWwJZQIYBtQBcCeAHApqAM5aEZ5yhx7JSGYAWyGo1AxvZrgQnQK5QIAjrzwBYAFAhQNACYsAbniigEAM0746jRQwKFkVUDKbJQWGL1CsasZskKEEAcygSpyVgCcYDjXkIAdBJuYAAqXADKXgg4GADkdNj4RCRkFDxEGJ68rBi8nmgANKAA7vQI7JTUtCEq6hj0BEncdISM+HKoCADWBKYyOd3FCPF0-YMBoACS6si1TjA+BIxjqOgNegZ9GFkIAEa8ZGNjRoPFG8oj0qiEMLUZ46zdkwCaFlY0oKjUnspwMJ5lnhAQAuFgADwMOG+INI2Vy+TQAFokkgnMFJGFynRrMptAQZAUSnsPN1CMVVACIVDvrpAdJ6dZCP5amVgX1Mp40aAqVBeHA9sCPnjkDpCPhWAg0FYYFAyOC7FA5OZeLUZLK4swSjRmBgYAohXBkL1dKB5GgRIkCrRVMCCntvpMAGIA2p4SFwaF4EEhWpI0CgACqzM80ygOEOoAiuygTjoAAp+PpbQBKP0B0LWwioJgIWVRmNx9NBkPTGRKDBqCq5-MAOX5gs8hGL4FYrH8dFCMF6NXEtQA6gRcaAnHhmP9SDz6o0zRaCKpvBRTLBECh1lxasRSORSiMOKYujtaXsrjB1O6sqZWDBy0E+5jQIO4vSFty9aBeMzpJc5cDmbk8zXPxihKPdpA-ARhDEB9r1oS8kGYJBTUpTwKDPcCcG8fBPGwD41jwOQAH1CL2a05HjBoeHuHFZUUOVAJTUpykqI1ejoK4EE9HxHAdJp9XsRwXGkWpYFQ6U4TffjQAANTQBBjDIGQpnDQ5oy5WM7wkZoZLkhSCOUiMMDU7kAF5OW5AAyUAAG9QGI0jZDBAAiYMhQMyMAAUfGYWSugUwCnNAABfABuDEpEHXc1g-L9TFUfgAPzd9LxtAEl3M2NMDuB9TF8+SmH0lSjMLUB-QOXUZxwGAENKAEGmgGBK1jaiGCYUo8GfAgACtP2YQiyDWNFCNAcJ8CiLlYlaxDRkwbI8E08RYMnc0-IK1zPHc5gzPjJBDLBCTY0YkyAD4bIkAMluYRxPW+PK9KUorQDM3bDgCQFoQ8PB42AAAdAAeYAnGKJzABMiJyUzC8QA0BPJfiITivTugqHsM6Q6CRxTNuM2NIdC8KwFrGASna4UrEBArQHiqBEtoJiKg4UDotlVAsGkNs8FiWoLFDKA8GJlckGlZpilkBqKoIUdeYKdADqcPwFsu0BMIQ2stie0B4xQKgwQxwrDOxpwjtO6zzplWgYEdVAYCcTWtghiQ8fvKQXVDd0aTwYpGkBBIiHgAgk2QW0VEehd4HAz9gWKV9mofBpvF4JwOA2WdVr1UNRYuUBBW5NArZKAisqzghld-GQfXvRWXq20AnLQYEMHjOI9hgPY9lZjBkF4wg4hTJzIcVlb8sxx6zMHvT1s2naivt8QS4wVWqHjMfkc2mfagAeWUZPGq90BGCVYocAEt8Z34JFl8UjK5b1Wo54XghGfQAoeA5a9PQQb5Xc8bxPHLiQ762FPQya8HxvEsMOcmcgrzwEwngRotAEA6BgIoTw8gEB8ynLoNUahbSAjlKUZAJBC5eGoGQBqq4hZcHJN+OQGwECeFqJecsSIzyqHYlvbEoAAAsAAGHhMo4BUHwVbTKABxEYAAJXgewVAOBEOXEAtR6A7BwIQEEIAnB7mkQEN+wAACyFRvC3FUBgYAo08DjRiKYnghBLTAAAEw8Psb6HKSoGAZCqpOB4I5yZXX5EaTwWAFHACUSotRIBEDsDQAALzrk8BAOj4DAAFmuFEuA0RIiQGkzQ0RYghPEEAA">comments from another typescript playground example</a></footer>
+                </section>
+                <section>
+                    <blockquote>
+                        We can get most of the value from a nominal type
+                        system with a little bit of extra code.
+
+                        We're going to use an intersectional type, with a unique
+                        constraint in the form of a property called __brand (this
+                        is convention) which makes it impossible to assign a
+                        normal string to a ValidatedInputString.
+                    </blockquote>
+                    <footer><a href="https://www.typescriptlang.org/play?#code/PTAEEFQOwewWwJZQIYBtQBcCeAHApqAM5aEZ5yhx7JSGYAWyGo1AxvZrgQnQK5QIAjrzwBYAFAhQNACYsAbniigEAM0746jRQwKFkVUDKbJQWGL1CsasZskKEEAcygSpyVgCcYDjXkIAdBJuYAAqXADKXgg4GADkdNj4RCRkFDxEGJ68rBi8nmgANKAA7vQI7JTUtCEq6hj0BEncdISM+HKoCADWBKYyOd3FCPF0-YMBoACS6si1TjA+BIxjqOgNegZ9GFkIAEa8ZGNjRoPFG8oj0qiEMLUZ46zdkwCaFlY0oKjUnspwMJ5lnhAQAuFgADwMOG+INI2Vy+TQAFokkgnMFJGFynRrMptAQZAUSnsPN1CMVVACIVDvrpAdJ6dZCP5amVgX1Mp40aAqVBeHA9sCPnjkDpCPhWAg0FYYFAyOC7FA5OZeLUZLK4swSjRmBgYAohXBkL1dKB5GgRIkCrRVMCCntvpMAGIA2p4SFwaF4EEhWpI0CgACqzM80ygOEOoAiuygTjoAAp+PpbQBKP0B0LWwioJgIWVRmNx9NBkPTGRKDBqCq5-MAOX5gs8hGL4FYrH8dFCMF6NXEtQA6gRcaAnHhmP9SDz6o0zRaCKpvBRTLBECh1lxasRSORSiMOKYujtaXsrjB1O6sqZWDBy0E+5jQIO4vSFty9aBeMzpJc5cDmbk8zXPxihKPdpA-ARhDEB9r1oS8kGYJBTUpTwKDPcCcG8fBPGwD41jwOQAH1CL2a05HjBoeHuHFZUUOVAJTUpykqI1ejoK4EE9HxHAdJp9XsRwXGkWpYFQ6U4TffjQAANTQBBjDIGQpnDQ5oy5WM7wkZoZLkhSCOUiMMDU7kAF5OW5AAyUAAG9QGI0jZDBAAiYMhQMyMAAUfGYWSugUwCnNAABfABuDEpEHXc1g-L9TFUfgAPzd9LxtAEl3M2NMDuB9TF8+SmH0lSjMLUB-QOXUZxwGAENKAEGmgGBK1jaiGCYUo8GfAgACtP2YQiyDWNFCNAcJ8CiLlYlaxDRkwbI8E08RYMnc0-IK1zPHc5gzPjJBDLBCTY0YkyAD4bIkAMluYRxPW+PK9KUorQDM3bDgCQFoQ8PB42AAAdAAeYAnGKJzABMiJyUzC8QA0BPJfiITivTugqHsM6Q6CRxTNuM2NIdC8KwFrGASna4UrEBArQHiqBEtoJiKg4UDotlVAsGkNs8FiWoLFDKA8GJlckGlZpilkBqKoIUdeYKdADqcPwFsu0BMIQ2stie0B4xQKgwQxwrDOxpwjtO6zzplWgYEdVAYCcTWtghiQ8fvKQXVDd0aTwYpGkBBIiHgAgk2QW0VEehd4HAz9gWKV9mofBpvF4JwOA2WdVr1UNRYuUBBW5NArZKAisqzghld-GQfXvRWXq20AnLQYEMHjOI9hgPY9lZjBkF4wg4hTJzIcVlb8sxx6zMHvT1s2naivt8QS4wVWqHjMfkc2mfagAeWUZPGq90BGCVYocAEt8Z34JFl8UjK5b1Wo54XghGfQAoeA5a9PQQb5Xc8bxPHLiQ762FPQya8HxvEsMOcmcgrzwEwngRotAEA6BgIoTw8gEB8ynLoNUahbSAjlKUZAJBC5eGoGQBqq4hZcHJN+OQGwECeFqJecsSIzyqHYlvbEoAAAsAAGHhMo4BUHwVbTKABxEYAAJXgewVAOBEOXEAtR6A7BwIQEEIAnB7mkQEN+wAACyFRvC3FUBgYAo08DjRiKYnghBLTAAAEw8Psb6HKSoGAZCqpOB4I5yZXX5EaTwWAFHACUSotRIBEDsDQAALzrk8BAOj4DAAFmuFEuA0RIiQGkzQ0RYghPEEAA">comments from another typescript playground example</a></footer>
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>Typescript Example 4</h2>
+                    <pre><code data-trim data-line-numbers="">
+                        type Doi = string & { __brand: "Doi" };
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript Example 4</h2>
+                    <pre><code data-trim data-line-numbers="5">
+                        const createDoiFromString = (doi: string): Doi => {
+                            if (!doi.includes("/")) {
+                              throw new Error(`${doi} does not look like a DOI`)
+                            }
+                            return doi as Doi;
+                        }
+                    </code></pre>
+                </section>
+                <section>
+                    <h2>Typescript Example 4</h2>
+                    <pre>
+> node_modules/.bin/ts-node test_types4.ts
+Type 'string' is not assignable to type '{ __brand: "Doi"; }'.
+
+console.log(getPublisherIdFromDoi(article.xml));
+//Argument of type 'string' is not assignable to parameter of type 'Doi'.
+                    </pre>
+                </section>
+                <section>
+                    <h2>Typescript is awesome again!</h2>
+                    <img src="images/awesome.jpeg">
+                </section>
+            </section>
+            <section>
+                <h1>The end.</h1>
+            </section>
+        </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [RevealHighlight]
+        });
+    </script>
+</body>
+
+</html>
